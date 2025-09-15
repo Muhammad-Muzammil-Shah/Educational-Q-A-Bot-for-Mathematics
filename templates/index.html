@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathBot AI - Educational Mathematics Assistant</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <!-- MathJax Configuration -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+            }
+        };
+    </script>
+    
+    <!-- MathJax -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-calculator"></i>
+                    <span class="logo-text">MathBot AI</span>
+                </div>
+                <button class="new-chat-btn">
+                    <i class="fas fa-plus"></i>
+                    <span>New Chat</span>
+                </button>
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="chat-history">
+                    <div class="history-section">
+                        <h3>Today</h3>
+                        <div class="history-item active">
+                            <i class="fas fa-message"></i>
+                            <span>Mathematics Assistant</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <span>Math Student</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="main-content">
+            <!-- Chat Header -->
+            <div class="chat-header">
+                <div class="chat-title">
+                    <h1>MathBot AI</h1>
+                    <p>Your Professional Mathematics Assistant</p>
+                </div>
+                <div class="chat-options">
+                    <button class="option-btn">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat Messages -->
+            <div class="chat-container">
+                <div id="chat-messages" class="chat-messages">
+                    <!-- Welcome message -->
+                    <div class="message-group bot-group">
+                        <div class="message-avatar">
+                            <div class="avatar bot-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                        </div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="sender-name">MathBot AI</span>
+                                <span class="timestamp">Now</span>
+                            </div>
+                            <div class="message-text">
+                                <p>Welcome! I'm your professional mathematics assistant. I can help you solve problems, explain concepts, and provide step-by-step solutions for:</p>
+                                <ul>
+                                    <li><strong>Algebra</strong> - Equations, inequalities, systems</li>
+                                    <li><strong>Calculus</strong> - Derivatives, integrals, limits</li>
+                                    <li><strong>Geometry</strong> - Shapes, proofs, measurements</li>
+                                    <li><strong>Statistics</strong> - Data analysis, probability</li>
+                                </ul>
+                                <p>Try asking me something like "Solve 2x + 5 = 15" or "Find the derivative of x²"!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="input-container">
+                    <form id="question-form" class="input-form">
+                        <div class="input-wrapper">
+                            <input 
+                                type="text" 
+                                id="question-input" 
+                                class="message-input" 
+                                placeholder="Ask me any math question..." 
+                                autocomplete="off"
+                                required
+                            >
+                            <button type="submit" id="send-button" class="send-button">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </form>
+                    <div class="input-footer">
+                        <p>MathBot AI can make mistakes. Consider checking important information.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loading-modal" class="loading-modal">
+        <div class="loading-content">
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+            </div>
+            <p>Solving your math problem...</p>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        class MathBotAI {
+            constructor() {
+                this.chatMessages = document.getElementById('chat-messages');
+                this.questionForm = document.getElementById('question-form');
+                this.questionInput = document.getElementById('question-input');
+                this.sendButton = document.getElementById('send-button');
+                this.loadingModal = document.getElementById('loading-modal');
+                
+                this.init();
+            }
+            
+            init() {
+                this.questionForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleSubmit();
+                });
+                
+                this.questionInput.addEventListener('input', () => {
+                    this.sendButton.disabled = !this.questionInput.value.trim();
+                });
+            }
+            
+            async handleSubmit() {
+                const question = this.questionInput.value.trim();
+                if (!question) return;
+                
+                // Add user message
+                this.addMessage(question, 'user');
+                this.questionInput.value = '';
+                this.sendButton.disabled = true;
+                
+                // Show loading
+                this.showLoading(true);
+                
+                try {
+                    const response = await fetch('/ask', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ question: question })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Add bot response
+                    if (data.success) {
+                        this.addMessage(data.response, 'bot');
+                    } else {
+                        this.addMessage(data.error || 'Sorry, I encountered an error while processing your question.', 'bot', true);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    this.addMessage('Sorry, I encountered an error while processing your question. Please try again.', 'bot', true);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+            
+            addMessage(content, sender, isError = false) {
+                const messageGroup = document.createElement('div');
+                messageGroup.className = `message-group ${sender}-group`;
+                
+                const timestamp = new Date().toLocaleTimeString('en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                if (sender === 'user') {
+                    messageGroup.innerHTML = `
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="sender-name">You</span>
+                                <span class="timestamp">${timestamp}</span>
+                            </div>
+                            <div class="message-text">
+                                <p>${this.escapeHtml(content)}</p>
+                            </div>
+                        </div>
+                        <div class="message-avatar">
+                            <div class="avatar user-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Format mathematical content for bot messages
+                    const formattedContent = this.formatMathContent(content);
+                    
+                    messageGroup.innerHTML = `
+                        <div class="message-avatar">
+                            <div class="avatar bot-avatar ${isError ? 'error' : ''}">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                        </div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="sender-name">MathBot AI</span>
+                                <span class="timestamp">${timestamp}</span>
+                            </div>
+                            <div class="message-text ${isError ? 'error-message' : ''}">
+                                ${formattedContent}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                this.chatMessages.appendChild(messageGroup);
+                this.scrollToBottom();
+                
+                // Re-render MathJax for new content
+                if (window.MathJax && sender === 'bot') {
+                    MathJax.typesetPromise([messageGroup]).catch((err) => console.log(err.message));
+                }
+            }
+            
+            formatMathContent(content) {
+                let formatted = content;
+                
+                // Step 1: Clean up the response and prepare for formatting
+                formatted = formatted.trim();
+                
+                // Step 2: Format main section headers
+                formatted = formatted.replace(/\*\*(Solution\s*\d*):\*\*/g, '<div class="solution-header">$1:</div>\n');
+                formatted = formatted.replace(/\*\*(Step \d+):\*\*/g, '<div class="step-header">$1:</div>\n');
+                formatted = formatted.replace(/\*\*(Final Answer):\*\*/g, '<div class="final-answer-header">$1:</div>\n');
+                
+                // Step 3: Handle standalone section headers (without asterisks)
+                formatted = formatted.replace(/^(Step \d+):\s*$/gm, '<div class="step-header">$1:</div>');
+                formatted = formatted.replace(/^(Solution):\s*$/gm, '<div class="solution-header">$1:</div>');
+                formatted = formatted.replace(/^(Final Answer):\s*$/gm, '<div class="final-answer-header">$1:</div>');
+                
+                // Step 4: Convert paragraphs and line breaks
+                formatted = formatted.split('\n\n').map(paragraph => {
+                    if (paragraph.trim() === '') return '';
+                    
+                    // Don't wrap headers in paragraphs
+                    if (paragraph.includes('class="solution-header"') || 
+                        paragraph.includes('class="step-header"') || 
+                        paragraph.includes('class="final-answer-header"')) {
+                        return paragraph;
+                    }
+                    
+                    // Wrap regular content in paragraphs
+                    return `<p>${paragraph.trim()}</p>`;
+                }).join('\n');
+                
+                // Step 5: Format mathematical expressions
+                formatted = formatted.replace(/\$([^$]+)\$/g, '<span class="math-expression">$1</span>');
+                formatted = formatted.replace(/(\d+x\s*[+\-=]\s*\d+)/g, '<span class="math-expression">$1</span>');
+                formatted = formatted.replace(/(x\s*=\s*\d+)/g, '<span class="math-expression">$1</span>');
+                formatted = formatted.replace(/f\(x\)\s*=/g, '<strong>f(x) =</strong>');
+                formatted = formatted.replace(/f'\(x\)\s*=/g, '<strong>f\'(x) =</strong>');
+                
+                // Step 6: Clean up and finalize
+                formatted = formatted.replace(/\n/g, '<br>');
+                formatted = formatted.replace(/<br>\s*<br>/g, '<br>');
+                formatted = formatted.replace(/\s+/g, ' ');
+                
+                return formatted;
+            }
+            
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            showLoading(show) {
+                if (show) {
+                    this.loadingModal.style.display = 'flex';
+                    this.sendButton.disabled = true;
+                    this.questionInput.disabled = true;
+                } else {
+                    this.loadingModal.style.display = 'none';
+                    this.sendButton.disabled = false;
+                    this.questionInput.disabled = false;
+                    this.questionInput.focus();
+                }
+            }
+            
+            scrollToBottom() {
+                setTimeout(() => {
+                    this.chatMessages.scrollTo({
+                        top: this.chatMessages.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }, 100);
+            }
+        }
+        
+        // Initialize the math bot when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new MathBotAI();
+        });
+    </script>
+</body>
+</html>
